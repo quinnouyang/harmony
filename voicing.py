@@ -1,7 +1,15 @@
+#!/usr/bin/env python
+
+
+
+
 import copy
 import argparse
 import itertools
 from fractions import Fraction
+import random
+
+from scipy import rand
 
 from music21.note import Note
 from music21.pitch import Pitch
@@ -17,6 +25,23 @@ SOPRANO_RANGE = (Pitch("C4"), Pitch("G5"))
 ALTO_RANGE = (Pitch("G3"), Pitch("C5"))
 TENOR_RANGE = (Pitch("C3"), Pitch("G4"))
 BASS_RANGE = (Pitch("E2"), Pitch("C4"))
+
+_TONICS = {
+    "major" : ("I", "vi", "iii", "Imaj7", "vi-7", "iii-7",),
+    "natural minor" : ("i", "VI", "III", "i-7", "VImaj7", "IIImaj7",),
+    "harmonic minor" : ("i", "VI", "III", "imM7", "VImaj7"),
+}
+_PREDOM = {
+    "major" : {"ii", "IV", "ii-7", "IVmaj7",},
+    "natural minor" : {"iio", "iv", "ii/o7", "iv-7",},
+    "harmonic minor" : {"iio", "iv", "ii/o7", "iv-7",},
+}
+_DOM = {
+    "major" : {"V", "viio", "V7", "vii/o7",},
+    "natural minor" : {"v", "VII", "v-7", "VII7",},
+    "harmonic minor" : {"V", "viio", "V7", "viio7",},
+}
+
 
 
 def voiceNote(noteName, pitchRange):
@@ -198,6 +223,8 @@ def voiceProgression(key, chordProgression):
     return list(reversed(ret)), totalCost
 
 
+
+
 def generateScore(chords, lengths=None, ts="4/4"):
     """Generates a four-part score from a sequence of chords.
 
@@ -250,6 +277,57 @@ def generateChorale(chorale, lengths=None, ts="4/4"):
     return score
 
 
+
+def generateRandom(*, mode=None, length=None):
+    
+    # jason's shit, insert copyright notice stuff lol
+    
+    possible_modes = {"major", "natural minor", "harmonic minor",}
+    
+    if mode is None:
+        mode = random.choice(possible_modes)
+        
+    if not (type(mode) == str and mode in possible_modes):
+        raise ValueError
+    
+    if length is None:
+        length = 8
+    
+    if not (type(length) == int and length > 0):
+        raise ValueError
+    
+    
+    chords = [None] * length
+    
+    chords[0] = random.choice(_TONICS[mode])
+    chords[-2] = random.choice(_DOM[mode])
+    chords[-1] = random.choice(_TONICS[mode])
+    
+    for i in range(1, length - 2):
+        if chords[i - 1] in _DOM[mode]:
+            
+            if chords[i - 1].lower().startswith("vii"):
+                chords[i]
+                    
+            function_chords = random.choice((_TONICS, _PREDOM, _DOM), [7, 1, 2])
+            
+            chords[i] = random.choice(function_chords[mode])
+        
+        
+        
+        else:
+            
+            chords[i] = random.choice({*_TONICS[mode], *_PREDOM[mode], *_DOM[mode]})
+
+        
+        
+        
+        
+
+        
+
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generates four-part harmony with idiomatic "
@@ -286,7 +364,11 @@ def main():
     key_and_chords = f"{args.key}: {args.chord_progression}"
     durations = [Fraction(x) for x in args.durations.split()]
     time_signature = args.time_signature
-    generateChorale(key_and_chords, durations, time_signature).show()
+    
+    
+    
+    
+    generateChorale(key_and_chords, durations, time_signature).show("musicxml")
 
 
 if __name__ == "__main__":
