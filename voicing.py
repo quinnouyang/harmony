@@ -18,6 +18,7 @@ from music21.meter import TimeSignature
 from music21.note import Note
 from music21.pitch import Pitch
 from music21.roman import RomanNumeral
+from music21.tempo import MetronomeMark
 from music21.stream import Part, Score, Voice
 from scipy import rand
 
@@ -41,6 +42,12 @@ _DOM = {
     "natural minor" : ("v", "VII", "v-7", "VII7",),
     "harmonic minor" : ("V", "viio", "V7", "viio7",),
 }
+
+
+_INVS_7 = ("7", "65", "43", "42",)
+_INVS = ("", "6", "64")
+
+
 
 _KEYS = tuple("c c# d d e f f# g a b b- e- a- d- g- c-".split())
 
@@ -234,7 +241,7 @@ def voiceProgression(key, chordProgression):
 
 
 
-def generateScore(chords, lengths=None, ts="4/4"):
+def generateScore(key, chords, lengths=None, ts="4/4"):
     """Generates a four-part score from a sequence of chords.
 
     Soprano and alto parts are displayed on the top (treble) clef, while tenor
@@ -256,8 +263,10 @@ def generateScore(chords, lengths=None, ts="4/4"):
         voices[2].append(tenor)
         voices[3].append(bass)
 
-    female = Part([TrebleClef(), TimeSignature(ts), voices[0], voices[1]])
-    male = Part([BassClef(), TimeSignature(ts), voices[2], voices[3]])
+    key = Key(key)
+    tempo = MetronomeMark('slow', 15, Note(type='whole'))
+    female = Part([key, tempo, TrebleClef(), TimeSignature(ts), voices[0], voices[1]])
+    male = Part([key, tempo, BassClef(), TimeSignature(ts), voices[2], voices[3]])
     score = Score([female, male])
     return score
 
@@ -282,7 +291,7 @@ def generateChorale(chorale, lengths=None, ts="4/4"):
     for key, chords in lines:
         phrase, _ = voiceProgression(key, chords)
         progression.extend(phrase)
-    score = generateScore(progression, lengths, ts)
+    score = generateScore(key, progression, lengths, ts)
     return score
 
 
@@ -337,6 +346,11 @@ def generateRandom(*, mode=None, length=None):
         else:
 
             chords[i] = random.choice((*_TONICS[mode], *_PREDOM[mode], *_DOM[mode]))
+
+        if chords[i].endswith('7'):
+            chords[i] = chords[i].removesuffix("7") + random.choice(_INVS_7)
+        else:
+            chords[i] = chords[i] + random.choice(_INVS)
 
     key = random.choice(_KEYS)
     if mode == "major":
@@ -410,7 +424,10 @@ def main():
 
 
 
-    generateChorale(key_and_chords, durations, time_signature).show("text")
+    chorale = generateChorale(key_and_chords, durations, time_signature)
+
+    chorale.show("text")
+    # chorale.show("musicxml")
 
 
 if __name__ == "__main__":
