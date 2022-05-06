@@ -1,4 +1,3 @@
-scipy
 music21
 
 pudb

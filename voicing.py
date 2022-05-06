@@ -18,9 +18,8 @@ from music21.meter import TimeSignature
 from music21.note import Note
 from music21.pitch import Pitch
 from music21.roman import RomanNumeral
-from music21.tempo import MetronomeMark
 from music21.stream import Part, Score, Voice
-from scipy import rand
+from music21.tempo import MetronomeMark
 
 SOPRANO_RANGE = (Pitch("C4"), Pitch("G5"))
 ALTO_RANGE = (Pitch("G3"), Pitch("C5"))
