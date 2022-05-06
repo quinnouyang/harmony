@@ -3,23 +3,23 @@
 
 
 
-import copy
 import argparse
+import copy
 import itertools
-from fractions import Fraction
 import random
+import re
+from fractions import Fraction
 
-from scipy import rand
-
-from music21.note import Note
-from music21.pitch import Pitch
 from music21.chord import Chord
-from music21.roman import RomanNumeral
-from music21.key import Key
-from music21.meter import TimeSignature
 from music21.clef import BassClef, TrebleClef
 from music21.instrument import Piano
+from music21.key import Key
+from music21.meter import TimeSignature
+from music21.note import Note
+from music21.pitch import Pitch
+from music21.roman import RomanNumeral
 from music21.stream import Part, Score, Voice
+from scipy import rand
 
 SOPRANO_RANGE = (Pitch("C4"), Pitch("G5"))
 ALTO_RANGE = (Pitch("G3"), Pitch("C5"))
@@ -32,15 +32,24 @@ _TONICS = {
     "harmonic minor" : ("i", "VI", "III", "imM7", "VImaj7"),
 }
 _PREDOM = {
-    "major" : {"ii", "IV", "ii-7", "IVmaj7",},
-    "natural minor" : {"iio", "iv", "ii/o7", "iv-7",},
-    "harmonic minor" : {"iio", "iv", "ii/o7", "iv-7",},
+    "major" : ("ii", "IV", "ii-7", "IVmaj7",),
+    "natural minor" : ("iio", "iv", "ii/o7", "iv-7",),
+    "harmonic minor" : ("iio", "iv", "ii/o7", "iv-7",),
 }
 _DOM = {
-    "major" : {"V", "viio", "V7", "vii/o7",},
-    "natural minor" : {"v", "VII", "v-7", "VII7",},
-    "harmonic minor" : {"V", "viio", "V7", "viio7",},
+    "major" : ("V", "viio", "V7", "vii/o7",),
+    "natural minor" : ("v", "VII", "v-7", "VII7",),
+    "harmonic minor" : ("V", "viio", "V7", "viio7",),
 }
+
+_KEYS = tuple("c c# d d e f f# g a b b- e- a- d- g- c-".split())
+
+_RE = re.compile(r"([iv]+)", re.I)
+
+
+
+
+
 
 
 
@@ -278,53 +287,77 @@ def generateChorale(chorale, lengths=None, ts="4/4"):
 
 
 
+
+def numeral(s):
+    return _RE.match(s)[1].lower()
+
+def get_numeral(l, n):
+    return [c for c in l if numeral(c) == n]
+
+
 def generateRandom(*, mode=None, length=None):
-    
+
+    # import pudb
+    # pu.db
+
     # jason's shit, insert copyright notice stuff lol
-    
+
     possible_modes = {"major", "natural minor", "harmonic minor",}
-    
+
     if mode is None:
-        mode = random.choice(possible_modes)
-        
+        mode = random.choice(list(possible_modes))
+
     if not (type(mode) == str and mode in possible_modes):
         raise ValueError
-    
+
     if length is None:
         length = 8
-    
+
     if not (type(length) == int and length > 0):
         raise ValueError
-    
-    
+
+
     chords = [None] * length
-    
-    chords[0] = random.choice(_TONICS[mode])
+
+    chords[0] = random.choice(get_numeral(_TONICS[mode], "i"))
     chords[-2] = random.choice(_DOM[mode])
-    chords[-1] = random.choice(_TONICS[mode])
-    
+    chords[-1] = random.choice(get_numeral(_TONICS[mode], "i"))
+
     for i in range(1, length - 2):
         if chords[i - 1] in _DOM[mode]:
-            
-            if chords[i - 1].lower().startswith("vii"):
-                chords[i]
-                    
-            function_chords = random.choice((_TONICS, _PREDOM, _DOM), [7, 1, 2])
-            
-            chords[i] = random.choice(function_chords[mode])
-        
-        
-        
+
+            if numeral(chords[i - 1]) == "vii":
+                chords[i] = random.choice(get_numeral(_TONICS[mode], "i"))
+
+            else:
+                function_chords = random.choices((_TONICS, _PREDOM, _DOM), [7, 1, 2])[0][mode]
+
+                chords[i] = random.choice(function_chords)
+
         else:
-            
-            chords[i] = random.choice({*_TONICS[mode], *_PREDOM[mode], *_DOM[mode]})
 
-        
-        
-        
-        
+            chords[i] = random.choice((*_TONICS[mode], *_PREDOM[mode], *_DOM[mode]))
 
-        
+    key = random.choice(_KEYS)
+    if mode == "major":
+        key = key.upper()
+
+    durations = ("1 " * length).removesuffix(" ")
+    time_signature = "4/4"
+
+    return {
+            "key" : key,
+            "chord_progression" : ' '.join(chords),
+            "durations" : durations,
+            "time_signature" : time_signature,
+           }
+
+
+
+
+
+
+
 
 
 
@@ -354,22 +387,33 @@ def main():
     parser.add_argument(
         "time_signature", type=str, nargs="?", help="the time signature"
     )
+
+    """
     parser.set_defaults(
         key="B-",
         chord_progression="I I6 IV V43/ii ii V V7 I",
         durations="1 1/2 1 1/2 1 1/2 1/2 1",
         time_signature="6/8",
     )
-    args = parser.parse_args()
-    key_and_chords = f"{args.key}: {args.chord_progression}"
-    durations = [Fraction(x) for x in args.durations.split()]
-    time_signature = args.time_signature
-    
-    
-    
-    
-    generateChorale(key_and_chords, durations, time_signature).show("musicxml")
+    """
+
+
+    args = vars(parser.parse_args())
+
+    if not any(args.values()):
+        args = generateRandom()
+
+    key_and_chords = f"{args['key']}: {args['chord_progression']}"
+    durations = [Fraction(x) for x in args["durations"].split()]
+    time_signature = args["time_signature"]
+
+
+
+
+    generateChorale(key_and_chords, durations, time_signature).show("text")
 
 
 if __name__ == "__main__":
     main()
+
+
