@@ -9,6 +9,7 @@ import itertools
 import random
 import re
 from fractions import Fraction
+import logging
 
 from music21.chord import Chord
 from music21.clef import BassClef, TrebleClef
@@ -25,6 +26,8 @@ SOPRANO_RANGE = (Pitch("C4"), Pitch("G5"))
 ALTO_RANGE = (Pitch("G3"), Pitch("C5"))
 TENOR_RANGE = (Pitch("C3"), Pitch("G4"))
 BASS_RANGE = (Pitch("E2"), Pitch("C4"))
+
+_MODES = ("major", "natural minor", "harmonic minor",)
 
 _TONICS = {
     "major" : ("I", "vi", "iii", "Imaj7", "vi-7", "iii-7",),
@@ -51,6 +54,8 @@ _INVS = ("", "6", "64")
 _KEYS = tuple("c c# d d e f f# g a b b- e- a- d- g- c-".split())
 
 _RE = re.compile(r"([iv]+)", re.I)
+
+_logger = logging.getLogger(__name__)
 
 
 
@@ -303,19 +308,25 @@ def get_numeral(l, n):
     return [c for c in l if numeral(c) == n]
 
 
-def generateRandom(*, mode=None, length=None):
+def choose_weighted(choices):
+
+    weights = [2.5 if c.endswith("7") else 1 for c in choices]
+    return random.choices(choices, weights)[0]
+
+
+
+def generateRandom(mode=None, length=None):
 
     # import pudb
     # pu.db
 
     # jason's shit, insert copyright notice stuff lol
 
-    possible_modes = {"major", "natural minor", "harmonic minor",}
 
     if mode is None:
-        mode = random.choice(list(possible_modes))
+        mode = random.choice(list(_MODES))
 
-    if not (type(mode) == str and mode in possible_modes):
+    if not (type(mode) == str and mode in _MODES):
         raise ValueError
 
     if length is None:
@@ -327,40 +338,45 @@ def generateRandom(*, mode=None, length=None):
 
     chords = [None] * length
 
-    chords[0] = random.choice(get_numeral(_TONICS[mode], "i"))
-    chords[-2] = random.choice(_DOM[mode])
-    chords[-1] = random.choice(get_numeral(_TONICS[mode], "i"))
+    chords[0] = choose_weighted(get_numeral(_TONICS[mode], "i"))
+    chords[-2] = choose_weighted(_DOM[mode])
+    chords[-1] = choose_weighted(get_numeral(_TONICS[mode], "i"))
 
     for i in range(1, length - 2):
         if chords[i - 1] in _DOM[mode]:
 
             if numeral(chords[i - 1]) == "vii":
-                chords[i] = random.choice(get_numeral(_TONICS[mode], "i"))
+                chords[i] = choose_weighted(get_numeral(_TONICS[mode], "i"))
 
             else:
                 function_chords = random.choices((_TONICS, _PREDOM, _DOM), [7, 1, 2])[0][mode]
 
-                chords[i] = random.choice(function_chords)
+                chords[i] = choose_weighted(function_chords)
 
         else:
 
-            chords[i] = random.choice((*_TONICS[mode], *_PREDOM[mode], *_DOM[mode]))
+            chords[i] = choose_weighted((*_TONICS[mode], *_PREDOM[mode], *_DOM[mode]))
 
-        if chords[i].endswith('7'):
+        if chords[i] == "V7":
             chords[i] = chords[i].removesuffix("7") + random.choice(_INVS_7)
-        else:
+        elif not chords[i].endswith("7"):
             chords[i] = chords[i] + random.choice(_INVS)
 
     key = random.choice(_KEYS)
     if mode == "major":
         key = key.upper()
 
+    chord_progression = ' '.join(chords)
+
     durations = ("1 " * length).removesuffix(" ")
     time_signature = "4/4"
 
+    _logger.debug(f"{key=}")
+    _logger.debug(f"{chord_progression=}")
+
     return {
             "key" : key,
-            "chord_progression" : ' '.join(chords),
+            "chord_progression" : chord_progression,
             "durations" : durations,
             "time_signature" : time_signature,
            }
@@ -401,6 +417,19 @@ def main():
         "time_signature", type=str, nargs="?", help="the time signature"
     )
 
+    parser.add_argument(
+        "-d", "--debug", action="store_true",
+    )
+
+    group = parser.add_argument_group("configuration for randomizer")
+
+    group.add_argument(
+            "-l", "--length", type=int, help="how many chords",
+    )
+    group.add_argument(
+            "-m", "--mode", choices=_MODES, help="which mode",
+    )
+
     """
     parser.set_defaults(
         key="B-",
@@ -413,8 +442,13 @@ def main():
 
     args = vars(parser.parse_args())
 
+    logging.basicConfig(level=(logging.DEBUG if args.pop("debug") else logging.WARNING))
+
+    mode = args.pop("mode", None)
+    length = args.pop("length", None)
+
     if not any(args.values()):
-        args = generateRandom()
+        args = generateRandom(mode, length)
 
     key_and_chords = f"{args['key']}: {args['chord_progression']}"
     durations = [Fraction(x) for x in args["durations"].split()]
