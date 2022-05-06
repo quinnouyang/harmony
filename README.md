@@ -1,5 +1,10 @@
 # Harmony
 
+Run `./voicing.py` along with any desired CLI arguments.
+
+
+# Original Contents
+
 Generate four-part harmony following idiomatic voice-leading procedures with DP!
 
 ```python
