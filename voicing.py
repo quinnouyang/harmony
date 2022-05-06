@@ -481,7 +481,7 @@ def main():
     # audio_method = "text"
 
 
-    chorale.measure(2).show(visual_method)
+    chorale.measure(1).show(visual_method)
     chorale.show(audio_method) # use a hidden audio player or something
 
  
