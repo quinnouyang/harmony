@@ -19,7 +19,7 @@ from music21.meter import TimeSignature
 from music21.note import Note
 from music21.pitch import Pitch
 from music21.roman import RomanNumeral
-from music21.stream import Part, Score, Voice
+from music21.stream import Part, Score, Voice, Measure
 from music21.tempo import MetronomeMark
 
 SOPRANO_RANGE = (Pitch("C4"), Pitch("G5"))
@@ -255,22 +255,37 @@ def generateScore(key, chords, lengths=None, ts="4/4"):
     if lengths is None:
         lengths = [1 for _ in chords]
     voices = [Voice([Piano()]) for _ in range(4)]
-    for chord, length in zip(chords, lengths):
+
+    upper_ms = []
+    lower_ms = []
+
+    for i, (chord, length) in enumerate(zip(chords, lengths), 1):
         bass, tenor, alto, soprano = [
             Note(p, quarterLength=length) for p in chord.pitches
         ]
         bass.addLyric(chord.lyric)
         bass.stemDirection = alto.stemDirection = "down"
         tenor.stemDirection = soprano.stemDirection = "up"
-        voices[0].append(soprano)
-        voices[1].append(alto)
-        voices[2].append(tenor)
-        voices[3].append(bass)
+        # voices[0].append(soprano)
+        # voices[1].append(alto)
+        # voices[2].append(tenor)
+        # voices[3].append(bass)
+
+        upper_m = Measure(number = i)
+        upper_m.append(Voice([Piano(), soprano]))
+        upper_m.append(Voice([Piano(), alto]))
+        upper_ms.append(upper_m)
+
+        lower_m = Measure(number = i)
+        lower_m.append(Voice([Piano(), tenor]))
+        lower_m.append(Voice([Piano(), bass]))
+        lower_ms.append(lower_m)
 
     key = Key(key)
     tempo = MetronomeMark('slow', 15, Note(type='whole'))
-    female = Part([key, tempo, TrebleClef(), TimeSignature(ts), voices[0], voices[1]])
-    male = Part([key, tempo, BassClef(), TimeSignature(ts), voices[2], voices[3]])
+
+    female = Part([key, tempo, TrebleClef(), TimeSignature(ts), *upper_ms])
+    male = Part([key, tempo, BassClef(), TimeSignature(ts), *lower_ms])
     score = Score([female, male])
     return score
 
@@ -459,8 +474,29 @@ def main():
 
     chorale = generateChorale(key_and_chords, durations, time_signature)
 
-    chorale.show("text")
-    # chorale.show("musicxml")
+
+    visual_method = "musicxml"
+    audio_method = "midi"
+    visual_method = "text"
+    audio_method = "text"
+
+
+    chorale.measure(2).show(visual_method)
+    chorale.show(audio_method) # use a hidden audio player or something
+
+ 
+    while True:
+        answer = input("Ready for answer [y/n]: ").lower()
+
+        if answer in {"y", "n"}:
+            if answer == 'y':
+                chorale.show(visual_method)
+            break
+
+        print("Invalid input!")
+
+
+
 
 
 if __name__ == "__main__":
