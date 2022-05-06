@@ -51,7 +51,7 @@ _INVS = ("", "6", "64")
 
 
 
-_KEYS = tuple("c c# d d e f f# g a b b- e- a- d- g- c-".split())
+_KEYS = tuple("c g d a e b f# c# f b- e- a- d- g- c-".split())
 
 _RE = re.compile(r"([iv]+)", re.I)
 
