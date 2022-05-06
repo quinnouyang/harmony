@@ -310,7 +310,7 @@ def get_numeral(l, n):
 
 def choose_weighted(choices):
 
-    weights = [2.5 if c.endswith("7") else 1 for c in choices]
+    weights = [1 if c.endswith("7") else 2.5 for c in choices]
     return random.choices(choices, weights)[0]
 
 
