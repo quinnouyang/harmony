@@ -477,8 +477,8 @@ def main():
 
     visual_method = "musicxml"
     audio_method = "midi"
-    visual_method = "text"
-    audio_method = "text"
+    # visual_method = "text"
+    # audio_method = "text"
 
 
     chorale.measure(2).show(visual_method)
