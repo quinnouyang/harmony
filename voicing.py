@@ -342,7 +342,8 @@ def generateRandom(*, mode=None, length=None):
     if mode == "major":
         key = key.upper()
 
-    durations = ("1 " * length).removesuffix(" ")
+    durations = ("1 " * length)[:-1]
+
     time_signature = "4/4"
 
     return {
@@ -408,9 +409,14 @@ def main():
     time_signature = args["time_signature"]
 
 
+    from pprint import pprint
+    
+    pprint(args)
 
 
-    generateChorale(key_and_chords, durations, time_signature).show("text")
+    chorale = generateChorale(key_and_chords, durations, time_signature)
+    chorale.show("text")
+    chorale.show("musicxml")
 
 
 if __name__ == "__main__":
